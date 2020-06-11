@@ -1,29 +1,31 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { RouteReuseStrategy } from '@angular/router';
-import { HttpClientModule }    from '@angular/common/http';
+import { HttpClientModule } from '@angular/common/http';
+ 
+import { RouteReuseStrategy,RouterModule } from '@angular/router';
 import { IonicModule, IonicRouteStrategy } from '@ionic/angular';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
-
+import {AuthService} from './services/auth.service';
+import{AuthGuard} from './guards/auth.guard';
+import {LoginGuard} from './guards/login.guard';
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
-import { LoginComponent } from './login/login.component';
-import { FormsModule } from '@angular/forms';
+
 
 @NgModule({
-  declarations: [AppComponent , LoginComponent],
+  declarations: [AppComponent],
   entryComponents: [],
   imports: [
     BrowserModule,
-    FormsModule,
     HttpClientModule,
     IonicModule.forRoot(),
-    AppRoutingModule
+    HttpClientModule,
+    AppRoutingModule, RouterModule
   ],
   providers: [
     StatusBar,
-    SplashScreen,
+    SplashScreen,AuthService,AuthGuard,
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy }
   ],
   bootstrap: [AppComponent]

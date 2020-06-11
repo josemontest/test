@@ -136,13 +136,13 @@ jhipster:
   clientApp:
     name: 'mockTestApp'
   # By default CORS is disabled. Uncomment to enable.
-  cors:
-      allowed-origins: "*"
-      allowed-methods: "*"
-      allowed-headers: "*"
-      exposed-headers: "Link,X-Total-Count,Authorization"
-      allow-credentials: true
-      max-age: 1800
+  # cors:
+  #     allowed-origins: "*"
+  #     allowed-methods: "*"
+  #     allowed-headers: "*"
+  #     exposed-headers: "Link,X-Total-Count"
+  #     allow-credentials: true
+  #     max-age: 1800
   mail:
     from: MockTest@localhost
   swagger:

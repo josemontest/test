@@ -1,9 +1,7 @@
 package com.lxisoft.config;
 
 import com.lxisoft.security.*;
-
-import io.github.jhipster.config.JHipsterProperties;
-import io.github.jhipster.security.*;
+import com.lxisoft.security.jwt.*;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -13,48 +11,27 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.authentication.RememberMeServices;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.filter.CorsFilter;
 import org.zalando.problem.spring.web.advice.security.SecurityProblemSupport;
-
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true, securedEnabled = true)
 @Import(SecurityProblemSupport.class)
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
-    private final JHipsterProperties jHipsterProperties;
-
-    private final RememberMeServices rememberMeServices;
+    private final TokenProvider tokenProvider;
 
     private final CorsFilter corsFilter;
     private final SecurityProblemSupport problemSupport;
 
-    public SecurityConfiguration(JHipsterProperties jHipsterProperties, RememberMeServices rememberMeServices, CorsFilter corsFilter, SecurityProblemSupport problemSupport) {
-        this.jHipsterProperties = jHipsterProperties;
-        this.rememberMeServices = rememberMeServices;
+    public SecurityConfiguration(TokenProvider tokenProvider, CorsFilter corsFilter, SecurityProblemSupport problemSupport) {
+        this.tokenProvider = tokenProvider;
         this.corsFilter = corsFilter;
         this.problemSupport = problemSupport;
-    }
-
-    @Bean
-    public AjaxAuthenticationSuccessHandler ajaxAuthenticationSuccessHandler() {
-        return new AjaxAuthenticationSuccessHandler();
-    }
-
-    @Bean
-    public AjaxAuthenticationFailureHandler ajaxAuthenticationFailureHandler() {
-        return new AjaxAuthenticationFailureHandler();
-    }
-
-    @Bean
-    public AjaxLogoutSuccessHandler ajaxLogoutSuccessHandler() {
-        return new AjaxLogoutSuccessHandler();
     }
 
     @Bean
@@ -66,6 +43,9 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     public void configure(WebSecurity web) {
         web.ignoring()
             .antMatchers(HttpMethod.OPTIONS, "/**")
+            .antMatchers("/app/**/*.{js,html}")
+            .antMatchers("/i18n/**")
+            .antMatchers("/content/**")
             .antMatchers("/swagger-ui/index.html")
             .antMatchers("/test/**");
     }
@@ -73,35 +53,13 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Override
     public void configure(HttpSecurity http) throws Exception {
         // @formatter:off
-
-    	
-    	
-        http	
-           .csrf().disable()
-            //.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-//        .and()
-//            .addFilterBefore(corsFilter, CsrfFilter.class)
-//            .exceptionHandling()
-//                .authenticationEntryPoint(problemSupport)
-//                .accessDeniedHandler(problemSupport)
-   //     .and()
-           	.addFilterBefore(corsFilter,CsrfFilter.class)
-           	.headers()
-            .frameOptions()
+        http
+            .csrf()
             .disable()
-              .and()        
-            .rememberMe()
-            .rememberMeServices(rememberMeServices)
-            .rememberMeParameter("remember-me")
-            .key(jHipsterProperties.getSecurity().getRememberMe().getKey())
-        .and()
-            .formLogin()
-            .loginPage("/login")
-            .permitAll()
-        .and()
-            .logout()
-            .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-            .permitAll()
+            .addFilterBefore(corsFilter, UsernamePasswordAuthenticationFilter.class)
+            .exceptionHandling()
+                .authenticationEntryPoint(problemSupport)
+                .accessDeniedHandler(problemSupport)
         .and()
             .headers()
             .contentSecurityPolicy("default-src 'self'; frame-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://storage.googleapis.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:")
@@ -113,6 +71,9 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
             .frameOptions()
             .deny()
         .and()
+            .sessionManagement()
+            .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        .and()
             .authorizeRequests()
             .antMatchers("/api/authenticate").permitAll()
             .antMatchers("/api/register").permitAll()
@@ -123,11 +84,15 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
             .antMatchers("/management/health").permitAll()
             .antMatchers("/management/info").permitAll()
             .antMatchers("/management/prometheus").permitAll()
-            .antMatchers("/app/*").hasAuthority(AuthoritiesConstants.ADMIN)
-            .antMatchers("/register").permitAll()
-            .antMatchers("/save").permitAll()
-            .antMatchers("/*").authenticated()
-            .antMatchers("/management/**").hasAuthority(AuthoritiesConstants.ADMIN);
+            .antMatchers("/management/**").hasAuthority(AuthoritiesConstants.ADMIN)
+        .and()
+            .httpBasic()
+        .and()
+            .apply(securityConfigurerAdapter());
         // @formatter:on
+    }
+
+    private JWTConfigurer securityConfigurerAdapter() {
+        return new JWTConfigurer(tokenProvider);
     }
 }
